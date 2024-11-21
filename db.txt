@@ -1,0 +1,67 @@
+const { MongoClient } = require('mongodb');
+
+// Connection URI
+const uri = 'mongodb://localhost:27017'; // Replace with your MongoDB connection string
+
+// Database Name
+const dbName = 'myDatabase'; // Replace with your database name
+
+// Create a new MongoClient
+const client = new MongoClient(uri);
+
+async function run() {
+    try {
+        // Connect to the MongoDB server
+        await client.connect();
+        console.log('Connected successfully to MongoDB');
+
+        // Get a reference to the database
+        const db = client.db(dbName);
+
+        // Example: List all collections
+        const collections = await db.listCollections().toArray();
+        console.log('Collections:', collections);
+    } catch (err) {
+        console.error('Error connecting to MongoDB:', err);
+    } finally {
+        // Close the connection
+        await client.close();
+    }
+}
+
+run().catch(console.dir);
+
+
+
+async function run() {
+    try {
+        await client.connect();
+        const db = client.db(dbName);
+        const collection = db.collection('myCollection');
+
+        // Insert a document
+        const insertResult = await collection.insertOne({ name: 'Alice', age: 25 });
+        console.log('Inserted document:', insertResult.insertedId);
+
+        // Find a document
+        const findResult = await collection.findOne({ name: 'Alice' });
+        console.log('Found document:', findResult);
+
+        // Update a document
+        const updateResult = await collection.updateOne(
+            { name: 'Alice' },
+            { $set: { age: 26 } }
+        );
+        console.log('Updated document count:', updateResult.modifiedCount);
+
+        // Delete a document
+        const deleteResult = await collection.deleteOne({ name: 'Alice' });
+        console.log('Deleted document count:', deleteResult.deletedCount);
+    } catch (err) {
+        console.error('Error:', err);
+    } finally {
+        await client.close();
+    }
+}
+
+run().catch(console.dir);
