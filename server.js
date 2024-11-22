@@ -1,46 +1,12 @@
 const express = require('express');
 const app = express()
 
-
+const { dbConnection } = require('./connection');
+const { ObjectId } = require('mongodb');
 app.use(express.json())
-// app.use(express.urlencoded({ extended: false}))
+app.use(express.urlencoded({ extended: false}))
 const port = 8000
 
-const { MongoClient } = require('mongodb');
-
-const dburl = 'mongodb://localhost:27017';
-const database = 'ets'
-const database1 = 'ets'
-
-const userTable = 'users'
-const proudctTable = 'products'
-
-const client = new MongoClient(dburl);
-
-async function run() {
-    try {
-        // Connect to the MongoDB server
-        await client.connect();
-
-
-        const db = client.db(database);
-        const collections = await db.listCollections().toArray(); // show all tables(collection)
-
-        const userCollection = await db.collection(userTable); // select a collection(users, products etc)
-        const userData = await userCollection.find().toArray();
-        
-        console.log('Table selected', userData);
-
- 
-    } catch (err) {
-        console.error('Error connecting to MongoDB:', err);
-    } finally {
-        await client.close();
-    }
-}
-
-
-run().catch(console.dir);
 
 
 app.get('/', (req, res) => {
@@ -50,31 +16,77 @@ app.get('/', (req, res) => {
 });
 
 
-app.get('/api/users', async (req, res) => {
-
-    await client.connect();
-    const db = client.db(database);
-
-
-    const userCollection = await db.collection(userTable); // select the user collection (table)
+app.get('/api/users',  async (req, res) => {
+    const db = await dbConnection();
+    
+    const userCollection =  db.collection("users");
     const userData = await userCollection.find({}).toArray();
     
-     
-    return res.json({message:'All Users', data:userData, status: 'OK'}).status(200)
+    return res.json({message:'All Users', data: userData, status: 'OK'}).status(200)
+})
+
+
+app.delete('/api/user/delete/:id', async (req, res) => {
+    try {
+        const db = await dbConnection();
+        const userId = req.params.id;
+
+        const userCollection = db.collection("users"); // select user collection 
+        const deleteResult = await userCollection.deleteOne({ _id: new ObjectId(userId) });
+ 
+
+        if (deleteResult.deletedCount === 1) {
+            return res.status(200).json({
+                message: `Record with ID ${userId} deleted successfully.`,
+                data: userId,
+                status: "OK"
+            });
+        } else {
+            return res.status(404).json({
+                message: `No record found with ID ${userId}.`,
+                data: userId,
+                status: "NOT_FOUND"
+            });
+        }
+    } catch (err) {
+        console.error('Error deleting record:', err);
+        return res.status(500).json({
+            message: 'Error deleting record',
+            error: err.message,
+            status: "ERROR"
+        });
+    }
+});
+
+
+app.post('/api/user/add',  async (req, res) => {
+    const db = await dbConnection();
+
+    let name = req.body.name
+    let role = req.body.role
+    let hobby = req.body.hobby ? req.body.hobby : "None";
+    
+    const userCollection = await db.collection("users"); // select the user collection (table)
+    const userData = await userCollection.insertOne({
+        name: name,
+        role: role,
+        hobby: hobby
+    });
+    
+    return res.json({message:'User Created', data:[], status: 'OK'}).status(200)
 })
 
 
 
-app.get('/api/products', async (req, res) => {
-
-    await client.connect();
-    const db = client.db(database);
 
 
-    const userCollection = await db.collection(proudctTable); // select the user collection (table)
+
+app.get('/api/products',  async (req, res) => {
+    const db = await dbConnection();
+    
+    const userCollection = await db.collection("products"); // select the user collection (table)
     const productData = await userCollection.find({}).toArray();
     
-     
     return res.json({message:'All Products', data:productData, status: 'OK'}).status(200)
 })
 
